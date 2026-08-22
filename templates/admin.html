@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>EduTrack - Admin Panel</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="dashboard-body">
+<nav class="navbar">
+    <div class="nav-brand">📚 EduTrack — Admin Panel</div>
+    <div class="nav-right">
+        <span>👋 {{ name }}</span>
+        <a href="/logout" class="logout-btn">Logout</a>
+    </div>
+</nav>
+<div class="dash-container">
+    <div class="stats-row">
+        <div class="stat-card blue"><div class="stat-icon">👥</div><div class="stat-info"><h3>{{ total }}</h3><p>Total Students</p></div></div>
+    </div>
+    <div class="card">
+        <h2>👥 All Students Overview</h2>
+        <div class="table-scroll">
+        <table class="marks-table">
+            <thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Subjects</th><th>Average</th><th>Grade</th><th>CGPA</th><th>Joined</th></tr></thead>
+            <tbody>
+            {% for s in students %}
+            <tr>
+                <td><b>{{ s.name }}</b></td>
+                <td>{{ s.username }}</td>
+                <td>{{ s.email }}</td>
+                <td>{{ s.subjects }}</td>
+                <td>{{ s.avg }}%</td>
+                <td><span class="grade-badge">{{ s.grade }}</span></td>
+                <td>{{ s.cgpa }}</td>
+                <td>{{ s.joined }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

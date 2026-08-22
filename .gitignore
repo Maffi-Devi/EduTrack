@@ -1,0 +1,1 @@
+__pycache__/ *.pyc *.pyo database/edutrack.db .env *.zip .DS_Store

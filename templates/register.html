@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTrack - Register</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="container">
+    <div class="auth-box">
+        <div class="logo">📚</div>
+        <h1>EduTrack</h1>
+        <p class="subtitle">Create Your Account</p>
+        {% for error in errors %}<div class="error-msg">{{ error }}</div>{% endfor %}
+        <form method="POST" action="/register">
+            <input type="text" name="name" placeholder="Full Name" required maxlength="100" value="{{ form_data.get('name','') }}">
+            <input type="email" name="email" placeholder="Email Address" required maxlength="100" value="{{ form_data.get('email','') }}">
+            <input type="text" name="username" placeholder="Username (letters, numbers, _)" required maxlength="30" value="{{ form_data.get('username','') }}">
+            <input type="password" name="password" placeholder="Password (min 6 characters)" required>
+            <button type="submit">Register</button>
+        </form>
+        <p class="link-text">Already registered? <a href="/login">Login here</a></p>
+    </div>
+</div>
+</body>
+</html>

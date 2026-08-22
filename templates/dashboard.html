@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTrack - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="dashboard-body">
+
+<nav class="navbar">
+    <div class="nav-brand">📚 EduTrack</div>
+    <div class="nav-right">
+        <span>👋 {{ name }}</span>
+        {% if marks %}<a href="/download_pdf" class="pdf-btn">📄 PDF Report</a>{% endif %}
+        <a href="/logout" class="logout-btn">Logout</a>
+    </div>
+</nav>
+
+<div class="dash-container">
+
+    {% if request.args.get('error') %}
+    <div class="alert-box">⚠️ {{ request.args.get('error') }}</div>
+    {% endif %}
+    {% if pwd_success %}<div class="success-banner">✅ Password changed successfully!</div>{% endif %}
+    {% if pwd_error == 'wrong' %}<div class="alert-box">❌ Current password is incorrect.</div>{% endif %}
+    {% if pwd_error == 'short' %}<div class="alert-box">❌ New password must be at least 6 characters.</div>{% endif %}
+    {% if pwd_error == 'mismatch' %}<div class="alert-box">❌ Passwords do not match.</div>{% endif %}
+
+    {% for alert in alerts %}
+    <div class="alert-box">{{ alert }}</div>
+    {% endfor %}
+
+    {% if badge %}
+    <div class="badge-banner" style="border-color:{{ badge.color }}">
+        <span class="badge-icon">{{ badge.icon }}</span>
+        <div>
+            <h3 style="color:{{ badge.color }}">{{ badge.name }}</h3>
+            <p>Your current performance badge!</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Stats -->
+    <div class="stats-row">
+        <div class="stat-card blue"><div class="stat-icon">📊</div><div class="stat-info"><h3>{{ marks|length }}</h3><p>Subjects</p></div></div>
+        <div class="stat-card green"><div class="stat-icon">🎯</div><div class="stat-info"><h3>{{ stats.avg }}%</h3><p>Average</p></div></div>
+        <div class="stat-card purple"><div class="stat-icon">🏆</div><div class="stat-info"><h3>{{ stats.grade }}</h3><p>Grade</p></div></div>
+        <div class="stat-card orange"><div class="stat-icon">⭐</div><div class="stat-info"><h3>{{ stats.cgpa }}</h3><p>CGPA/10</p></div></div>
+        <div class="stat-card teal"><div class="stat-icon">✅</div><div class="stat-info"><h3>{{ stats.passed }}/{{ marks|length }}</h3><p>Passed</p></div></div>
+    </div>
+
+    <div class="main-grid">
+        <div class="card">
+            <h2>➕ Add Subject Marks</h2>
+            <form method="POST" action="/add_marks" class="marks-form">
+                <input type="text" name="subject" placeholder="Subject Name" required maxlength="50" pattern="[a-zA-Z0-9 \-]+" title="Letters, numbers, spaces, hyphens only">
+                <input type="number" name="marks" placeholder="Marks (0-100)" min="0" max="100" step="0.1" required>
+                <select name="semester">
+                    <option>Semester 1</option><option>Semester 2</option>
+                    <option>Semester 3</option><option>Semester 4</option>
+                </select>
+                <button type="submit">Add Marks</button>
+            </form>
+        </div>
+        <div class="card">
+            <h2>🎯 Set Target Marks</h2>
+            {% if marks %}
+            <form method="POST" action="/set_target" class="marks-form">
+                <select name="subject" required>
+                    <option value="">-- Select Subject --</option>
+                    {% for m in marks %}<option value="{{ m.subject }}">{{ m.subject }}</option>{% endfor %}
+                </select>
+                <input type="number" name="target" placeholder="Target (0-100)" min="0" max="100" required>
+                <button type="submit" class="btn-orange">Set Target</button>
+            </form>
+            {% else %}<p class="no-data">Add subjects first.</p>{% endif %}
+        </div>
+    </div>
+
+    <!-- Marks Table -->
+    <div class="card" style="margin-bottom:20px">
+        <h2>📋 Subject-wise Marks</h2>
+        {% if marks %}
+        <div class="table-scroll">
+        <table class="marks-table">
+            <thead><tr><th>Subject</th><th>Marks</th><th>Semester</th><th>Target</th><th>Gap</th><th>Grade</th><th>GPA</th><th>Delete</th></tr></thead>
+            <tbody>
+            {% for m in marks %}
+            <tr class="{{ 'row-fail' if m.marks|float < 40 else '' }}">
+                <td><b>{{ m.subject }}</b></td>
+                <td>{{ m.marks }}/100</td>
+                <td><span class="sem-badge">{{ m.semester }}</span></td>
+                <td>{% if targets.get(m.subject) %}<span class="target-badge">{{ targets[m.subject]|int }}</span>{% else %}<span class="no-target">—</span>{% endif %}</td>
+                <td>{% if targets.get(m.subject) %}{% set gap = targets[m.subject]|float - m.marks|float %}{% if gap<=0 %}<span class="gap-good">✅</span>{% else %}<span class="gap-bad">+{{ gap|round(1) }}</span>{% endif %}{% else %}—{% endif %}</td>
+                <td><span class="grade-badge">{% if m.marks|float>=90%}A+{% elif m.marks|float>=80%}A{% elif m.marks|float>=70%}B+{% elif m.marks|float>=60%}B{% elif m.marks|float>=50%}C{% elif m.marks|float>=40%}D{% else %}F{% endif %}</span></td>
+                <td>{% if m.marks|float>=90%}10{% elif m.marks|float>=80%}9{% elif m.marks|float>=70%}8{% elif m.marks|float>=60%}7{% elif m.marks|float>=50%}6{% elif m.marks|float>=40%}5{% else %}0{% endif %}.0</td>
+                <td><a href="/delete_mark/{{ m.id }}" class="delete-btn" onclick="return confirm('Delete?')">🗑</a></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}<p class="no-data">No marks added yet!</p>{% endif %}
+    </div>
+
+    {% if marks %}
+    <div class="card chart-card">
+        <h2>📈 Performance vs Target</h2>
+        <canvas id="marksChart" height="80"></canvas>
+    </div>
+
+    <div class="card gpa-card">
+        <h2>⭐ GPA Summary</h2>
+        <div class="gpa-grid">
+            <div class="gpa-item"><h3>{{ stats.avg }}%</h3><p>Average</p></div>
+            <div class="gpa-item"><h3>{{ stats.grade }}</h3><p>Grade</p></div>
+            <div class="gpa-item"><h3>{{ stats.highest }}%</h3><p>Highest</p></div>
+            <div class="gpa-item"><h3>{{ stats.lowest }}%</h3><p>Lowest</p></div>
+            <div class="gpa-item highlight"><h3>{{ stats.cgpa }}/10</h3><p>CGPA</p></div>
+        </div>
+        <div class="gpa-scale"><p>A+(90+)=10 | A(80+)=9 | B+(70+)=8 | B(60+)=7 | C(50+)=6 | D(40+)=5 | F(&lt;40)=0</p></div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+        <h2>🤖 AI Study Recommendations</h2>
+        <div class="rec-grid">
+            {% for r in recommendations %}
+            <div class="rec-item {% if r.marks|float>=80%}rec-good{% elif r.marks|float>=50%}rec-avg{% else %}rec-bad{% endif %}">
+                <h4>{{ r.subject }}</h4>
+                <p class="rec-marks">Score: {{ r.marks }}/100{% if r.target %} | Target: {{ r.target|int }}{% endif %}</p>
+                <p class="rec-tip">💡 {{ r.tip }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Exam Timetable -->
+    <div class="card" style="margin-bottom:20px">
+        <h2>📅 Exam Timetable</h2>
+        <form method="POST" action="/add_exam" class="marks-form timetable-form">
+            <div class="tt-grid">
+                <input type="text" name="subject" placeholder="Subject" required maxlength="50">
+                <input type="date" name="exam_date" required>
+                <input type="time" name="exam_time">
+                <input type="text" name="venue" placeholder="Venue (optional)" maxlength="100">
+                <button type="submit" class="btn-teal">Add Exam</button>
+            </div>
+        </form>
+        {% if timetable %}
+        <div class="table-scroll" style="margin-top:15px">
+        <table class="marks-table">
+            <thead><tr><th>Subject</th><th>Date</th><th>Time</th><th>Venue</th><th>Delete</th></tr></thead>
+            <tbody>
+            {% for exam in timetable %}
+            <tr>
+                <td><b>{{ exam.subject }}</b></td>
+                <td>{{ exam.exam_date }}</td>
+                <td>{{ exam.exam_time or '—' }}</td>
+                <td>{{ exam.venue or '—' }}</td>
+                <td><a href="/delete_exam/{{ exam.id }}" class="delete-btn" onclick="return confirm('Delete?')">🗑</a></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}<p class="no-data">No exams added yet.</p>{% endif %}
+    </div>
+
+    <!-- Study Notes -->
+    <div class="card" style="margin-bottom:20px">
+        <h2>📝 Study Notes</h2>
+        <form method="POST" action="/add_note" class="marks-form">
+            <div class="note-inputs">
+                <input type="text" name="subject" placeholder="Subject/Topic" required maxlength="50">
+                <input type="text" name="note" placeholder="Write your note..." required maxlength="500">
+                <button type="submit" class="btn-green">Add</button>
+            </div>
+        </form>
+        {% if notes %}
+        <div class="notes-list">
+            {% for note in notes %}
+            <div class="note-item">
+                <div class="note-content">
+                    <span class="note-subject">{{ note.subject }}</span>
+                    <span class="note-text">{{ note.note }}</span>
+                    <span class="note-date">{{ note.created_at }}</span>
+                </div>
+                <a href="/delete_note/{{ note.id }}" class="delete-btn" onclick="return confirm('Delete?')">🗑</a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}<p class="no-data">No notes added yet!</p>{% endif %}
+    </div>
+
+    <!-- Change Password -->
+    <div class="card" style="margin-bottom:100px">
+        <h2>🔐 Change Password</h2>
+        <form method="POST" action="/change_password" class="marks-form pwd-form">
+            <input type="password" name="current_password" placeholder="Current Password" required>
+            <input type="password" name="new_password" placeholder="New Password (min 6 chars)" required minlength="6">
+            <input type="password" name="confirm_password" placeholder="Confirm New Password" required>
+            <button type="submit" class="btn-red">Change Password</button>
+        </form>
+    </div>
+
+</div>
+
+<!-- Chatbot -->
+<div class="chat-widget" id="chatWidget">
+    <div class="chat-header" onclick="toggleChat()">
+        🤖 EduBot — Ask Me Anything! <span id="chatToggle">▲</span>
+    </div>
+    <div class="chat-body" id="chatBody">
+        <div class="chat-messages" id="chatMessages">
+            <div class="bot-msg">👋 Hi {{ name }}! I'm EduBot. Ask me anything about your studies!</div>
+        </div>
+        <div class="chat-input-row">
+            <input type="text" id="chatInput" placeholder="Ask a question..." maxlength="500" onkeypress="if(event.key==='Enter') sendMsg()">
+            <button onclick="sendMsg()">Send</button>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+{% if marks %}
+const ctx = document.getElementById('marksChart').getContext('2d');
+const targetData = {{ target_scores|safe }};
+const datasets = [{label:'Marks',data:{{ scores|safe }},backgroundColor:'rgba(78,84,200,0.7)',borderColor:'#4e54c8',borderWidth:2,borderRadius:8}];
+if(targetData.some(t=>t!==null)){datasets.push({label:'Target',data:targetData,backgroundColor:'rgba(243,156,18,0.5)',borderColor:'#f39c12',borderWidth:2,borderRadius:8});}
+new Chart(ctx,{type:'bar',data:{labels:{{ subjects|safe }},datasets:datasets},options:{responsive:true,scales:{y:{beginAtZero:true,max:100}}}});
+{% endif %}
+</script>
+</body>
+</html>

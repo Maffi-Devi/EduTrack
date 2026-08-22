@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTrack - Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="container">
+    <div class="auth-box">
+        <div class="logo">📚</div>
+        <h1>EduTrack</h1>
+        <p class="subtitle">Student Performance Analyzer</p>
+        {% if request.args.get('registered') %}
+        <div class="success-msg">✅ Registration successful! Please login.</div>
+        {% endif %}
+        {% if error %}<div class="error-msg">{{ error }}</div>{% endif %}
+        <form method="POST" action="/login">
+            <input type="text" name="username" placeholder="Username" required maxlength="50">
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+        <p class="link-text">New user? <a href="/register">Register here</a></p>
+    </div>
+</div>
+</body>
+</html>
