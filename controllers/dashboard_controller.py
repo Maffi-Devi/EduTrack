@@ -13,10 +13,9 @@ from reportlab.lib.units import inch
 import io
 import os
 
-GROQ_API_KEY = os.environ.get('GROQ_API_KEY', 'local-secret-key')
+GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '').strip()
 dashboard = Blueprint('dashboard', __name__)
-
-GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_URL     = "https://api.groq.com/openai/v1/chat/completions"
 
 def login_required(f):
     from functools import wraps
@@ -28,6 +27,28 @@ def login_required(f):
     return decorated
 
 # ── AI Chatbot ────────────────────────────────────────────────────────────────
+def offline_reply(user_message, marks_list):
+    message = user_message.lower()
+    average = None
+    if marks_list:
+        average = sum(float(mark['marks']) for mark in marks_list) / len(marks_list)
+
+    if 'python' in message:
+        return "Python ke liye pehle variables, conditions, loops aur functions samjho. Har concept ka ek chhota program likho, phir usme input validation aur error handling add karo."
+    if 'database' in message or 'sql' in message:
+        return "Database padhte waqt tables, primary key, foreign key aur SQL CRUD queries se shuru karo. Practice ke liye students aur marks ki do tables bana kar JOIN query try karo."
+    if 'algorithm' in message or 'dsa' in message:
+        return "DSA mein pehle problem ko input, output aur constraints mein tod do. Phir brute-force solution likho, uski time complexity nikalo, aur uske baad better approach dhoondo."
+    if 'study' in message or 'exam' in message or 'padh' in message:
+        return "Aaj ke liye 25-minute study session rakho: 15 minutes concept, 5 minutes bina notes recall, aur 5 minutes practice question. Har session ke end mein ek short summary likho."
+    if 'marks' in message or 'score' in message or 'result' in message:
+        if average is not None:
+            return f"Aapka current average {average:.1f}% hai. Sabse kam marks wale subject ko priority do, uske weak topics ki list banao aur roz kam se kam 30 minutes targeted practice karo."
+        return "Marks ka personalized advice dene ke liye pehle dashboard par apne subjects aur marks add kijiye."
+    return "Main abhi offline mode mein hoon. Aap Python, SQL, DSA, study plan, exam preparation ya marks ke baare mein pooch sakte hain."
+
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+
 def ask_ai(user_message, marks_list):
     marks_summary = ""
     if marks_list:
@@ -43,13 +64,15 @@ Your rules:
 3. If student asks to complete assignment/project/homework — REFUSE politely and say: "I can guide you step by step, but completing work for you won't help you learn!"
 4. Keep responses clear, concise, encouraging.
 5. For low marks subjects, proactively suggest improvement tips."""
+    if not GROQ_API_KEY:
+        return offline_reply(user_message, marks_list)
 
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "llama-3.3-70b-versatile",
+        "model": "qwen/qwen3.8-27b",
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message}
@@ -60,8 +83,8 @@ Your rules:
         res  = req.post(GROQ_URL, headers=headers, json=payload, timeout=15)
         data = res.json()
         return data['choices'][0]['message']['content']
-    except:
-        return "Sorry, I'm having trouble connecting. Please try again!"
+    except (req.RequestException, KeyError, ValueError):
+        return offline_reply(user_message, marks_list)
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 @dashboard.route('/dashboard')

@@ -3,4 +3,5 @@ numpy
 requests
 reportlab
 werkzeug
+python-dotenv
 gunicorn
