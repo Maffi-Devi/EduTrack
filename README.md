@@ -1,28 +1,51 @@
-# 📚 EduTrack - Student Management & Tracking System
+ # EduTrack
 
-EduTrack ek simple aur powerful system hai jo educational institutes, teachers, aur students ke data, attendance, grades, aur daily progress ko efficiently track aur manage karne ke liye banaya gaya hai.
+ EduTrack is a Flask-based student performance dashboard with marks, targets, study notes, exam timetable, PDF reports, and an EduBot academic assistant.
 
----
+ ## Features
 
-## 🚀 Key Features
+ - Student registration and login
+ - Marks, grades, GPA, targets, and recommendations
+ - Exam timetable and study notes
+ - PDF performance report
+ - EduBot powered by Groq when `GROQ_API_KEY` is configured
+ - Offline EduBot fallback when no API key is available
 
-* **Student Data Management:** Student details, enrollment, aur records ko easily organize karein.
-* **Attendance Tracking:** Daily ya subject-wise attendance marked aur track karein.
-* **Performance & Grades:** Exams, tests, aur assignments ke marks aur progress reports manage karein.
-* **Interactive Dashboard:** Admins aur instructors ke liye quick statistics aur summary view.
+ ## Run locally
 
----
+ ```powershell
+ py -m pip install -r requirements.txt
+ Copy-Item .env.example .env
+ ```
 
-## 🛠️ Tech Stack
+ Edit `.env` and set these values:
 
-* **Frontend:** HTML5, CSS3, JavaScript / React
-* **Backend:** Node.js / Express / Python
-* **Database:** MongoDB / MySQL
+ ```env
+ GROQ_API_KEY=your_groq_api_key
+ SECRET_KEY=your_long_random_secret
+ ADMIN_PASSWORD=your_strong_admin_password
+ ```
 
----
+ Start the app:
 
-## 📦 Installation & Setup
+ ```powershell
+ py app.py
+ ```
 
-1. **Repository Clone Karein:**
-   ```bash
-   git clone [https://github.com/maffi-devi/edutrack.git](https://github.com/maffi-devi/edutrack.git)
+ Open http://127.0.0.1:5000.
+
+ ## Deploy publicly
+
+ This repository includes `render.yaml` for Render deployment.
+
+ 1. Open the [EduTrack GitHub repository](https://github.com/Maffi-Devi/EduTrack).
+ 2. In Render, choose **New +** and **Blueprint**.
+ 3. Select this repository and deploy.
+ 4. Add `GROQ_API_KEY` and `ADMIN_PASSWORD` as private environment variables in Render.
+ 5. Render will provide the public application URL after deployment.
+
+ Never commit `.env` or a real API key. The repository only contains `.env.example`.
+
+ ## License
+
+ This project is provided for educational and demonstration purposes.
