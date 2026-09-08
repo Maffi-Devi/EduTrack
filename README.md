@@ -1,4 +1,8 @@
- # EduTrack
+# EduTrack
+
+## Live Demo
+
+Open the deployed application: [https://edutrack-4rxz.onrender.com](https://edutrack-4rxz.onrender.com/)
 
  EduTrack is a Flask-based student performance dashboard with marks, targets, study notes, exam timetable, PDF reports, and an EduBot academic assistant.
 
