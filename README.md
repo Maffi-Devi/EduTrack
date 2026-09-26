@@ -2,7 +2,7 @@
 
 ## Live Demo
 
-Open the deployed application: [https://edutrack-4rxz.onrender.com](https://edutrack-4rxz.onrender.com/)
+Open the deployed application: [https://maffi.pythonanywhere.com](https://maffi.pythonanywhere.com/)
 
  EduTrack is a Flask-based student performance dashboard with marks, targets, study notes, exam timetable, PDF reports, and an EduBot academic assistant.
 
@@ -83,7 +83,8 @@ Open the deployed application: [https://edutrack-4rxz.onrender.com](https://edut
  7. Turn on **Force HTTPS**, click **Reload**, and open `https://<username>.pythonanywhere.com`.
 
  To update later: `cd ~/EduTrack && git pull`, then **Reload** in the Web tab.
- Free web apps must be extended once every three months from the Web tab.
+ Free web apps must be kept running by logging in at least once a month and clicking
+ **Run until 1 month from today** in the Web tab (PythonAnywhere emails a reminder a week before).
 
  ## Deploy publicly on Render
 
