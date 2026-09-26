@@ -1,21 +1,41 @@
 from database.db import get_connection
+from models.marks_model import MarksModel, SEMESTERS
 
 class TargetModel:
 
     @staticmethod
-    def set(user_id, subject, target):
+    def validate(subject, semester, target):
+        errors = MarksModel.validate_subject(subject)
+        if semester not in SEMESTERS:
+            errors.append("Please select a valid semester.")
+        try:
+            t = float(target)
+            if t < 0 or t > 100:
+                errors.append("Target must be between 0 and 100.")
+        except (TypeError, ValueError):
+            errors.append("Please enter a valid numeric target.")
+        return errors
+
+    @staticmethod
+    def set(user_id, subject, semester, target):
+        """Update the target if this subject (any letter case) already has one
+        in the same semester, otherwise insert a new target."""
+        subject = MarksModel.clean_subject(subject)
         conn = get_connection()
         try:
-            conn.execute(
-                """INSERT INTO targets (user_id, subject, target)
-                   VALUES (?, ?, ?)
-                   ON CONFLICT(user_id, subject)
-                   DO UPDATE SET target = excluded.target""",
-                (user_id, subject, float(target))
+            cur = conn.execute(
+                """UPDATE targets SET target = ?
+                   WHERE user_id = ? AND LOWER(subject) = LOWER(?) AND semester = ?""",
+                (float(target), user_id, subject, semester)
             )
+            if cur.rowcount == 0:
+                conn.execute(
+                    "INSERT INTO targets (user_id, subject, semester, target) VALUES (?, ?, ?, ?)",
+                    (user_id, subject, semester, float(target))
+                )
             conn.commit()
             return True
-        except:
+        except Exception:
             return False
         finally:
             conn.close()
@@ -24,10 +44,31 @@ class TargetModel:
     def get_by_user(user_id):
         conn = get_connection()
         targets = conn.execute(
-            "SELECT * FROM targets WHERE user_id = ?", (user_id,)
+            "SELECT * FROM targets WHERE user_id = ? ORDER BY semester, subject",
+            (user_id,)
         ).fetchall()
         conn.close()
-        return {t['subject']: float(t['target']) for t in targets}
+        return targets
+
+    @staticmethod
+    def as_lookup(targets):
+        """Map (subject, semester) -> target so marks rows can find their target."""
+        return {(t['subject'].lower(), t['semester']): float(t['target']) for t in targets}
+
+    @staticmethod
+    def delete(target_id, user_id):
+        conn = get_connection()
+        try:
+            conn.execute(
+                "DELETE FROM targets WHERE id = ? AND user_id = ?",
+                (target_id, user_id)
+            )
+            conn.commit()
+            return True
+        except Exception:
+            return False
+        finally:
+            conn.close()
 
 
 class NoteModel:
@@ -49,7 +90,7 @@ class NoteModel:
             )
             conn.commit()
             return True, "Note added!"
-        except:
+        except Exception:
             return False, "Failed to add note."
         finally:
             conn.close()
@@ -74,7 +115,7 @@ class NoteModel:
             )
             conn.commit()
             return True
-        except:
+        except Exception:
             return False
         finally:
             conn.close()
@@ -99,7 +140,7 @@ class TimetableModel:
             )
             conn.commit()
             return True, "Exam added to timetable!"
-        except:
+        except Exception:
             return False, "Failed to add exam."
         finally:
             conn.close()
@@ -124,7 +165,7 @@ class TimetableModel:
             )
             conn.commit()
             return True
-        except:
+        except Exception:
             return False
         finally:
             conn.close()

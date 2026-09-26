@@ -3,6 +3,9 @@ from models.user_model import UserModel
 
 auth = Blueprint('auth', __name__)
 
+def home_for(role):
+    return '/admin' if role == 'admin' else '/dashboard'
+
 @auth.route('/')
 def home():
     return redirect('/login')
@@ -10,7 +13,7 @@ def home():
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     if 'user_id' in session:
-        return redirect('/dashboard')
+        return redirect(home_for(session.get('role')))
     error = None
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -24,9 +27,7 @@ def login():
                 session['username'] = user['username']
                 session['name'] = user['name']
                 session['role'] = user['role']
-                if user['role'] == 'admin':
-                    return redirect('/admin')
-                return redirect('/dashboard')
+                return redirect(home_for(user['role']))
             else:
                 error = "Invalid username or password. Please try again."
     return render_template('login.html', error=error)
@@ -34,7 +35,7 @@ def login():
 @auth.route('/register', methods=['GET', 'POST'])
 def register():
     if 'user_id' in session:
-        return redirect('/dashboard')
+        return redirect(home_for(session.get('role')))
     errors = []
     form_data = {}
     if request.method == 'POST':
@@ -66,13 +67,14 @@ def change_password():
     new_pass = request.form.get('new_password', '')
     confirm  = request.form.get('confirm_password', '')
 
+    back = home_for(session.get('role'))
     user = UserModel.verify_password(session['username'], current)
     if not user:
-        return redirect('/dashboard?pwd_error=wrong')
+        return redirect(f'{back}?pwd_error=wrong')
     if len(new_pass) < 6:
-        return redirect('/dashboard?pwd_error=short')
+        return redirect(f'{back}?pwd_error=short')
     if new_pass != confirm:
-        return redirect('/dashboard?pwd_error=mismatch')
+        return redirect(f'{back}?pwd_error=mismatch')
 
     UserModel.update_password(session['user_id'], new_pass)
-    return redirect('/dashboard?pwd_success=1')
+    return redirect(f'{back}?pwd_success=1')

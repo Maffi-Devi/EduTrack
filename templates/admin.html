@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EduTrack - Admin Panel</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
@@ -14,31 +15,126 @@
     </div>
 </nav>
 <div class="dash-container">
+
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+    {% if category == 'error' %}<div class="alert-box">⚠️ {{ message }}</div>
+    {% else %}<div class="success-banner">✅ {{ message }}</div>{% endif %}
+    {% endfor %}
+    {% if pwd_success %}<div class="success-banner">✅ Password changed successfully!</div>{% endif %}
+    {% if pwd_error == 'wrong' %}<div class="alert-box">❌ Current password is incorrect.</div>{% endif %}
+    {% if pwd_error == 'short' %}<div class="alert-box">❌ New password must be at least 6 characters.</div>{% endif %}
+    {% if pwd_error == 'mismatch' %}<div class="alert-box">❌ Passwords do not match.</div>{% endif %}
+
     <div class="stats-row">
-        <div class="stat-card blue"><div class="stat-icon">👥</div><div class="stat-info"><h3>{{ total }}</h3><p>Total Students</p></div></div>
+        <div class="stat-card blue"><div class="stat-icon">👥</div><div class="stat-info"><h3>{{ overview.total }}</h3><p>Total Students</p></div></div>
+        <div class="stat-card green"><div class="stat-icon">📝</div><div class="stat-info"><h3>{{ overview.active }}</h3><p>Added Marks</p></div></div>
+        <div class="stat-card purple"><div class="stat-icon">⏳</div><div class="stat-info"><h3>{{ overview.no_marks }}</h3><p>No Marks Yet</p></div></div>
+        <div class="stat-card orange"><div class="stat-icon">🎯</div><div class="stat-info"><h3>{{ overview.avg }}%</h3><p>Overall Average</p></div></div>
+        <div class="stat-card teal"><div class="stat-icon">🚨</div><div class="stat-info"><h3>{{ overview.at_risk }}</h3><p>With a Failed Subject</p></div></div>
     </div>
-    <div class="card">
+
+    <div class="main-grid">
+        <div class="card">
+            <h2>📚 Semester-wise Summary</h2>
+            <div class="table-scroll">
+            <table class="marks-table">
+                <thead><tr><th>Semester</th><th>Entries</th><th>Average</th><th>Failed</th></tr></thead>
+                <tbody>
+                {% for s in semester_summary %}
+                <tr>
+                    <td><span class="sem-badge">{{ s.semester }}</span></td>
+                    <td>{{ s.entries }}</td>
+                    <td>{% if s.avg is not none %}{{ s.avg }}%{% else %}—{% endif %}</td>
+                    <td>{% if s.failed %}<span class="gap-bad">{{ s.failed }}</span>{% else %}0{% endif %}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+        <div class="card">
+            <h2>🏆 Top Performers</h2>
+            {% if top %}
+            <div class="table-scroll">
+            <table class="marks-table">
+                <thead><tr><th>#</th><th>Name</th><th>Average</th><th>CGPA</th></tr></thead>
+                <tbody>
+                {% for s in top %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td><a href="{{ url_for('admin.student_detail', user_id=s.id) }}" class="table-link"><b>{{ s.name }}</b></a></td>
+                    <td>{{ s.avg }}%</td>
+                    <td>{{ s.cgpa }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% else %}<p class="no-data">No student has added marks yet.</p>{% endif %}
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
         <h2>👥 All Students Overview</h2>
+        {% if students %}
+        <input type="search" id="studentSearch" class="search-input" placeholder="🔍 Search by name, username or email...">
         <div class="table-scroll">
-        <table class="marks-table">
-            <thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Subjects</th><th>Average</th><th>Grade</th><th>CGPA</th><th>Joined</th></tr></thead>
+        <table class="marks-table" id="studentTable">
+            <thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Subjects</th><th>Average</th><th>Grade</th><th>CGPA</th><th>Joined</th><th>Actions</th></tr></thead>
             <tbody>
             {% for s in students %}
-            <tr>
-                <td><b>{{ s.name }}</b></td>
+            <tr class="{{ 'row-fail' if s.failed else '' }}">
+                <td><a href="{{ url_for('admin.student_detail', user_id=s.id) }}" class="table-link"><b>{{ s.name }}</b></a></td>
                 <td>{{ s.username }}</td>
                 <td>{{ s.email }}</td>
                 <td>{{ s.subjects }}</td>
-                <td>{{ s.avg }}%</td>
+                <td>{% if s.subjects %}{{ s.avg }}%{% else %}—{% endif %}</td>
                 <td><span class="grade-badge">{{ s.grade }}</span></td>
                 <td>{{ s.cgpa }}</td>
                 <td>{{ s.joined }}</td>
+                <td class="actions-cell">
+                    <a href="{{ url_for('admin.student_detail', user_id=s.id) }}" class="view-btn">View</a>
+                    <form method="POST" action="{{ url_for('admin.delete_student', user_id=s.id) }}" class="inline-form"
+                          onsubmit="return confirm('Delete {{ s.username }} and ALL their marks, targets, notes and exams? This cannot be undone.')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="delete-btn" title="Delete student">🗑</button>
+                    </form>
+                </td>
             </tr>
             {% endfor %}
             </tbody>
         </table>
         </div>
+        <p class="no-data" id="noMatch" hidden>No student matches your search.</p>
+        {% else %}<p class="no-data">No students have registered yet.</p>{% endif %}
+    </div>
+
+    <div class="card" style="margin-bottom:40px">
+        <h2>🔐 Change Admin Password</h2>
+        <form method="POST" action="/change_password" class="marks-form pwd-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="password" name="current_password" placeholder="Current Password" required>
+            <input type="password" name="new_password" placeholder="New Password (min 6 chars)" required minlength="6">
+            <input type="password" name="confirm_password" placeholder="Confirm New Password" required>
+            <button type="submit" class="btn-red">Change Password</button>
+        </form>
     </div>
 </div>
+
+<script>
+const search = document.getElementById('studentSearch');
+if(search){
+    search.addEventListener('input', function(){
+        const q = this.value.trim().toLowerCase();
+        let shown = 0;
+        document.querySelectorAll('#studentTable tbody tr').forEach(function(row){
+            const match = row.textContent.toLowerCase().includes(q);
+            row.hidden = !match;
+            if(match) shown++;
+        });
+        document.getElementById('noMatch').hidden = shown > 0;
+    });
+}
+</script>
 </body>
 </html>

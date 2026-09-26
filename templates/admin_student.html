@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduTrack - {{ student.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="dashboard-body">
+<nav class="navbar">
+    <div class="nav-brand">📚 EduTrack — Admin Panel</div>
+    <div class="nav-right">
+        <a href="{{ url_for('admin.admin_panel') }}" class="view-btn">← All Students</a>
+        {% if stats.grade != 'N/A' %}<a href="{{ url_for('admin.student_pdf', user_id=student.id) }}" class="pdf-btn">📄 PDF Report</a>{% endif %}
+        <a href="/logout" class="logout-btn">Logout</a>
+    </div>
+</nav>
+<div class="dash-container">
+
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+    {% if category == 'error' %}<div class="alert-box">⚠️ {{ message }}</div>
+    {% else %}<div class="success-banner">✅ {{ message }}</div>{% endif %}
+    {% endfor %}
+
+    <div class="card" style="margin-bottom:20px">
+        <h2>👤 {{ student.name }}</h2>
+        <p class="form-hint" style="margin:0">@{{ student.username }} · {{ student.email }} · Joined {{ student.created_at }}</p>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card blue"><div class="stat-icon">📊</div><div class="stat-info"><h3>{{ stats.passed + stats.failed }}</h3><p>Subjects</p></div></div>
+        <div class="stat-card green"><div class="stat-icon">🎯</div><div class="stat-info"><h3>{{ stats.avg }}%</h3><p>Average</p></div></div>
+        <div class="stat-card purple"><div class="stat-icon">🏆</div><div class="stat-info"><h3>{{ stats.grade }}</h3><p>Grade</p></div></div>
+        <div class="stat-card orange"><div class="stat-icon">⭐</div><div class="stat-info"><h3>{{ stats.cgpa }}</h3><p>CGPA/10</p></div></div>
+        <div class="stat-card teal"><div class="stat-icon">✅</div><div class="stat-info"><h3>{{ stats.passed }}/{{ stats.passed + stats.failed }}</h3><p>Passed</p></div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+        <h2>📋 Marks by Semester</h2>
+        {% for semester, rows in semesters %}
+        <h3 class="sem-heading"><span class="sem-badge">{{ semester }}</span></h3>
+        <div class="table-scroll">
+        <table class="marks-table">
+            <thead><tr><th>Subject</th><th>Marks</th><th>Grade</th><th>Target</th><th>Status</th></tr></thead>
+            <tbody>
+            {% for r in rows %}
+            <tr class="{{ 'row-fail' if r.row.marks|float < 40 else '' }}">
+                <td><b>{{ r.row.subject }}</b></td>
+                <td>{{ r.row.marks }}/100</td>
+                <td><span class="grade-badge">{{ r.grade }}</span></td>
+                <td>{% if r.target is not none %}<span class="target-badge">{{ '%g'|format(r.target) }}</span>{% else %}<span class="no-target">—</span>{% endif %}</td>
+                <td>{% if r.status %}<span class="status-pill {{ r.status.css }}">{{ r.status.label }}</span>{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}<p class="no-data">This student has not added any marks yet.</p>{% endfor %}
+    </div>
+
+    <div class="main-grid">
+        <div class="card">
+            <h2>📅 Exam Timetable</h2>
+            {% if timetable %}
+            <div class="table-scroll">
+            <table class="marks-table">
+                <thead><tr><th>Subject</th><th>Date</th><th>Time</th><th>Venue</th></tr></thead>
+                <tbody>
+                {% for exam in timetable %}
+                <tr><td><b>{{ exam.subject }}</b></td><td>{{ exam.exam_date }}</td><td>{{ exam.exam_time or '—' }}</td><td>{{ exam.venue or '—' }}</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% else %}<p class="no-data">No exams added.</p>{% endif %}
+        </div>
+        <div class="card">
+            <h2>🎯 Targets</h2>
+            {% if targets %}
+            <div class="table-scroll">
+            <table class="marks-table">
+                <thead><tr><th>Semester</th><th>Subject</th><th>Target</th></tr></thead>
+                <tbody>
+                {% for t in targets %}
+                <tr><td><span class="sem-badge">{{ t.semester }}</span></td><td><b>{{ t.subject }}</b></td><td>{{ '%g'|format(t.target) }}</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% else %}<p class="no-data">No targets set.</p>{% endif %}
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+        <h2>📝 Study Notes</h2>
+        {% if notes %}
+        <div class="notes-list">
+            {% for note in notes %}
+            <div class="note-item">
+                <div class="note-content">
+                    <span class="note-subject">{{ note.subject }}</span>
+                    <span class="note-text">{{ note.note }}</span>
+                    <span class="note-date">{{ note.created_at }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}<p class="no-data">No notes added.</p>{% endif %}
+    </div>
+
+    <div class="card danger-zone" style="margin-bottom:40px">
+        <h2>⚠️ Danger Zone</h2>
+        <form method="POST" action="{{ url_for('admin.delete_student', user_id=student.id) }}"
+              onsubmit="return confirm('Delete {{ student.username }} and ALL their data? This cannot be undone.')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-delete-student">Delete this student</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>

@@ -76,7 +76,7 @@ class UserModel:
             )
             conn.commit()
             return True
-        except:
+        except Exception:
             return False
         finally:
             conn.close()
@@ -85,7 +85,30 @@ class UserModel:
     def get_all_students():
         conn = get_connection()
         users = conn.execute(
-            "SELECT id, username, name, email, created_at FROM users WHERE role = 'student'"
+            "SELECT id, username, name, email, created_at FROM users WHERE role = 'student' ORDER BY name COLLATE NOCASE"
         ).fetchall()
         conn.close()
         return users
+
+    @staticmethod
+    def get_student(user_id):
+        conn = get_connection()
+        user = conn.execute(
+            "SELECT id, username, name, email, created_at FROM users WHERE id = ? AND role = 'student'",
+            (user_id,)
+        ).fetchone()
+        conn.close()
+        return user
+
+    @staticmethod
+    def delete_student(user_id):
+        """Delete a student; their marks, targets, notes and exams go with them (ON DELETE CASCADE)."""
+        conn = get_connection()
+        try:
+            cur = conn.execute("DELETE FROM users WHERE id = ? AND role = 'student'", (user_id,))
+            conn.commit()
+            return cur.rowcount > 0
+        except Exception:
+            return False
+        finally:
+            conn.close()

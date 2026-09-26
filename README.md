@@ -38,7 +38,54 @@ Open the deployed application: [https://edutrack-4rxz.onrender.com](https://edut
 
  Open http://127.0.0.1:5000.
 
- ## Deploy publicly
+ ## Admin panel
+
+ Set `ADMIN_PASSWORD` before the first start; an `admin` account is created with it.
+ Log in as `admin` to open `/admin`, which shows:
+
+ - total students, students with and without marks, overall average, students with a failed subject
+ - semester-wise summary and top performers
+ - a searchable list of all students
+ - a detail page per student (marks by semester, targets, exams, notes), their PDF report,
+   and an option to delete the student with all their data
+
+ ## Deploy on PythonAnywhere (recommended free option)
+
+ PythonAnywhere keeps files on disk, so the SQLite database survives restarts.
+ On Render's free plan the disk is wiped on every deploy/restart, which deletes all accounts and marks.
+
+ 1. Create a free account at [pythonanywhere.com](https://www.pythonanywhere.com/).
+ 2. Open a **Bash console** and run:
+
+    ```bash
+    git clone https://github.com/Maffi-Devi/EduTrack.git
+    cd EduTrack
+    python3.12 -m venv ~/edutrack-venv
+    source ~/edutrack-venv/bin/activate
+    pip install -r requirements.txt
+    cp .env.example .env
+    nano .env      # fill GROQ_API_KEY, SECRET_KEY, ADMIN_PASSWORD, SESSION_COOKIE_SECURE=true
+    ```
+
+ 3. **Web** tab → **Add a new web app** → **Manual configuration** → Python 3.12.
+ 4. Set **Virtualenv** to `/home/<username>/edutrack-venv`.
+ 5. Open the **WSGI configuration file** and replace its contents with:
+
+    ```python
+    import sys, os
+    project = '/home/<username>/EduTrack'
+    sys.path.insert(0, project)
+    os.chdir(project)
+    from app import app as application
+    ```
+
+ 6. Under **Static files** add URL `/static/` → directory `/home/<username>/EduTrack/static`.
+ 7. Turn on **Force HTTPS**, click **Reload**, and open `https://<username>.pythonanywhere.com`.
+
+ To update later: `cd ~/EduTrack && git pull`, then **Reload** in the Web tab.
+ Free web apps must be extended once every three months from the Web tab.
+
+ ## Deploy publicly on Render
 
  This repository includes `render.yaml` for Render deployment.
 
@@ -48,7 +95,37 @@ Open the deployed application: [https://edutrack-4rxz.onrender.com](https://edut
  4. Add `GROQ_API_KEY` and `ADMIN_PASSWORD` as private environment variables in Render.
  5. Render will provide the public application URL after deployment.
 
+ > **Warning:** the free Render disk is temporary. The SQLite database is erased on every
+ > deploy or restart. Keep data by adding a paid persistent disk and setting `DB_PATH`
+ > to a file on it (for example `/var/data/edutrack.db`), or use PythonAnywhere.
+
  Never commit `.env` or a real API key. The repository only contains `.env.example`.
+
+ ## Keep the Render service warm
+
+ The app provides a public `GET /health` endpoint that returns HTTP 200 and
+ `{"status":"ok"}` without querying the database or calling external APIs.
+ `render.yaml` uses this route for deployment health checks. Render health checks
+ alone are not an external keep-alive schedule.
+
+ After deploying these changes, create a job at [cron-job.org](https://cron-job.org/):
+
+ - Title: `EduTrack keep-alive`
+ - URL: `https://edutrack-4rxz.onrender.com/health` (replace the hostname if needed)
+ - Method: `GET`, with no authentication or request body
+ - Schedule: every 5 minutes, all hours and days (`*/5 * * * *`)
+ - Enable the job and failure notifications, then run a test and confirm HTTP 200.
+
+ The schedule must run on an external service: an in-app timer stops when Render
+ puts the app to sleep. Creating this endpoint does not activate the cron job;
+ the job must be saved and enabled in your cron-job.org account.
+
+ [Render Free services](https://render.com/docs/free) sleep after 15 minutes without
+ inbound traffic. Regular pings can reduce idle cold starts, but cannot guarantee
+ immediate responses during restarts, deploys, or scheduler outages. Free instance
+ hours are limited to 750 per workspace per month and shared across services;
+ keeping a service awake consumes those hours. For guaranteed avoidance of idle
+ spin-down, use a paid instance.
 
  ## License
 

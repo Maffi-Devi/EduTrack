@@ -13,7 +13,9 @@
         <h1>EduTrack</h1>
         <p class="subtitle">Create Your Account</p>
         {% for error in errors %}<div class="error-msg">{{ error }}</div>{% endfor %}
+        {% for message in get_flashed_messages() %}<div class="error-msg">{{ message }}</div>{% endfor %}
         <form method="POST" action="/register">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="text" name="name" placeholder="Full Name" required maxlength="100" value="{{ form_data.get('name','') }}">
             <input type="email" name="email" placeholder="Email Address" required maxlength="100" value="{{ form_data.get('email','') }}">
             <input type="text" name="username" placeholder="Username (letters, numbers, _)" required maxlength="30" value="{{ form_data.get('username','') }}">

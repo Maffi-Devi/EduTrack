@@ -1,14 +1,21 @@
-function toggleChat(){
-    const body = document.getElementById('chatBody');
-    const tog  = document.getElementById('chatToggle');
-    if(body.style.display === 'none'){
-        body.style.display = 'flex';
-        tog.textContent = '▼';
-    } else {
-        body.style.display = 'none';
-        tog.textContent = '▲';
-    }
+function setChatOpen(open){
+    const widget = document.getElementById('chatWidget');
+    widget.classList.toggle('open', open);
+    document.getElementById('chatToggle').textContent = open ? '▼' : '▲';
+    if(open) document.getElementById('chatInput').focus();
 }
+
+function toggleChat(){
+    setChatOpen(!document.getElementById('chatWidget').classList.contains('open'));
+}
+
+// Close the chat when clicking anywhere outside it
+document.addEventListener('click', function(e){
+    const widget = document.getElementById('chatWidget');
+    if(widget && widget.classList.contains('open') && !widget.contains(e.target)){
+        setChatOpen(false);
+    }
+});
 
 async function sendMsg(){
     const input = document.getElementById('chatInput');
@@ -23,13 +30,17 @@ async function sendMsg(){
     try {
         const res  = await fetch('/chat', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+            },
             body: JSON.stringify({message: msg})
         });
+        if(!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
         const typing = document.getElementById('typing-indicator');
         if(typing) typing.remove();
-        msgs.innerHTML += `<div class="bot-msg">${data.reply.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<b>$1</b>')}</div>`;
+        msgs.innerHTML += `<div class="bot-msg">${escapeHtml(data.reply).replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<b>$1</b>')}</div>`;
     } catch(e) {
         const typing = document.getElementById('typing-indicator');
         if(typing) typing.textContent = '❌ Connection error. Please try again.';

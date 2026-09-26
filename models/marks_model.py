@@ -1,22 +1,46 @@
 from database.db import get_connection
-import numpy as np
+
+SEMESTERS = ['Semester 1', 'Semester 2', 'Semester 3', 'Semester 4']
 
 class MarksModel:
 
     @staticmethod
-    def validate_marks(subject, marks):
+    def clean_subject(subject):
+        """Trim and collapse extra spaces so 'DBMS ' and 'DBMS' are the same subject."""
+        return ' '.join((subject or '').split())
+
+    @staticmethod
+    def validate_subject(subject):
         errors = []
-        if not subject or len(subject.strip()) < 2:
+        subject = MarksModel.clean_subject(subject)
+        if len(subject) < 2:
             errors.append("Subject name must be at least 2 characters.")
-        if not subject.replace(' ', '').replace('-', '').isalnum():
+        elif not subject.replace(' ', '').replace('-', '').isalnum():
             errors.append("Subject name can only contain letters, numbers, spaces, hyphens.")
+        return errors
+
+    @staticmethod
+    def validate_marks(subject, marks, semester='Semester 1'):
+        errors = MarksModel.validate_subject(subject)
+        if semester not in SEMESTERS:
+            errors.append("Please select a valid semester.")
         try:
             m = float(marks)
             if m < 0 or m > 100:
                 errors.append("Marks must be between 0 and 100.")
-        except:
+        except (TypeError, ValueError):
             errors.append("Please enter valid numeric marks.")
         return errors
+
+    @staticmethod
+    def exists(user_id, subject, semester):
+        conn = get_connection()
+        row = conn.execute(
+            "SELECT 1 FROM marks WHERE user_id = ? AND LOWER(subject) = LOWER(?) AND semester = ?",
+            (user_id, MarksModel.clean_subject(subject), semester)
+        ).fetchone()
+        conn.close()
+        return row is not None
 
     @staticmethod
     def add(user_id, subject, marks, semester="Semester 1"):
@@ -24,7 +48,7 @@ class MarksModel:
         try:
             conn.execute(
                 "INSERT INTO marks (user_id, subject, marks, semester) VALUES (?, ?, ?, ?)",
-                (user_id, subject.strip(), float(marks), semester)
+                (user_id, MarksModel.clean_subject(subject), float(marks), semester)
             )
             conn.commit()
             return True, "Marks added successfully!"
@@ -53,7 +77,7 @@ class MarksModel:
             )
             conn.commit()
             return True
-        except:
+        except Exception:
             return False
         finally:
             conn.close()
@@ -64,15 +88,15 @@ class MarksModel:
             return {'avg': 0, 'grade': 'N/A', 'gpa': 0.0, 'cgpa': 0.0,
                     'highest': 0, 'lowest': 0, 'passed': 0, 'failed': 0}
 
-        scores = np.array([float(m['marks']) for m in marks_list])
-        avg    = round(float(np.mean(scores)), 2)
-        highest= round(float(np.max(scores)), 2)
-        lowest = round(float(np.min(scores)), 2)
-        passed = int(np.sum(scores >= 40))
-        failed = int(np.sum(scores < 40))
+        scores = [float(m['marks']) for m in marks_list]
+        avg    = round(sum(scores) / len(scores), 2)
+        highest= round(max(scores), 2)
+        lowest = round(min(scores), 2)
+        passed = sum(1 for s in scores if s >= 40)
+        failed = len(scores) - passed
 
-        gpas   = [MarksModel.marks_to_gpa(float(m['marks'])) for m in marks_list]
-        cgpa   = round(float(np.mean(np.array(gpas))), 2)
+        gpas   = [MarksModel.marks_to_gpa(s) for s in scores]
+        cgpa   = round(sum(gpas) / len(gpas), 2)
         gpa    = MarksModel.marks_to_gpa(avg)
         grade  = MarksModel.marks_to_grade(avg)
 
